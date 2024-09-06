@@ -20,7 +20,7 @@ const PORT = process.env.PORT || 3000
 
 const websocketServer = require("websocket").server
 const httpServer = http.createServer();
-httpServer.listen(PORT, () => console.log("listening on 9090"))
+httpServer.listen(PORT,'0.0.0.0', () => console.log("listening on 9090"))
 
 //hashmap
 const clients = {};
