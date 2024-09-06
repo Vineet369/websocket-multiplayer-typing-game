@@ -54,9 +54,9 @@ wsServer.on("request", request => {
             async function generateQuote() {
                 quote = await randomQuotes()
                 const clientId = result.clientId;
-                admin = clientId
-                playerName = result.playerName
-                // console.log(playerName)
+                admin = clientId;
+                const adminName = result.adminName;
+                // console.log(clientId,adminName)
                 const gameId = guid();
                 games[`${gameId}`] = {
                     "id": gameId,
@@ -64,7 +64,7 @@ wsServer.on("request", request => {
                     "clients": [
                         {
                             "clientId": clientId,
-                            "playerName": playerName,
+                            "playerName": adminName,
                             "color": "#E59462",
                             "progress": 0,
                             "score": 0
@@ -92,7 +92,7 @@ wsServer.on("request", request => {
 
             const clientId = result.clientId;
             const gameId = result.gameId;
-
+            const playerName = result.playerName
             const game = games[gameId];
             if (game.entry) {
                 const color = { "0": "#552619", "1": "#c83f5f", "2": "#144058", "3": "#B6E696", "4": "#355952" }[game.clients.length]
