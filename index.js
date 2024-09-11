@@ -4,10 +4,6 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 
-// app.use(express.static(__dirname + '/public'));
-// app.get('/', (req, res) => { res.sendFile(__dirname + "/index.html") })
-// app.listen(9091, () => console.log("Listening on http port 9091"))
-
 dotenv.config({
     path: './.env'
 })
@@ -20,21 +16,20 @@ const PORT = process.env.PORT || 3000
 
 const websocketServer = require("websocket").server
 const httpServer = http.createServer();
-httpServer.listen(PORT,'0.0.0.0', () => console.log("listening on 9090"))
+httpServer.listen(PORT,'0.0.0.0', () => console.log("listening on 3000"))
 
-//hashmap
+//constants and variables-------------------
 const clients = {};
 const games = {};
 let admin = null;
-// let playerName = null;
+let quote;
+
 const wsServer = new websocketServer({
     "httpServer": httpServer,
 })
 
+// Display text api and fetch functionality------------------------
 const quoteUrl = 'https://dummyjson.com/quotes/random';
-let quote;
-
-
 
 function randomQuotes() {
     return fetch(quoteUrl)
@@ -43,6 +38,7 @@ function randomQuotes() {
 
 }
 
+//client requests and server responses using websocket--------------
 wsServer.on("request", request => {
     const connection = request.accept(null, request.origin)
     connection.on("open", () => console.log("Opened!"))
@@ -50,13 +46,13 @@ wsServer.on("request", request => {
     connection.on("message", (message) => {
         const result = JSON.parse(message.utf8Data);
         
+        // client create message
         if (result.method === "create") {
             async function generateQuote() {
                 quote = await randomQuotes()
                 const clientId = result.clientId;
                 admin = clientId;
                 const adminName = result.adminName;
-                // console.log(clientId,adminName)
                 const gameId = guid();
                 games[`${gameId}`] = {
                     "id": gameId,
@@ -72,7 +68,6 @@ wsServer.on("request", request => {
                     ],
                     "entry": true
                 };
-                // console.log()
                 const payload = {
                     "method": "join",
                     "game": games[gameId],
@@ -80,33 +75,31 @@ wsServer.on("request", request => {
                     "quote": quote
 
                 };
-                // console.log(JSON.stringify(games) + "pay");
 
+                //response
                 const con = clients[clientId].connection;
                 con.send(JSON.stringify(payload));
             }
             generateQuote()
         }
 
+        //client join message
         if (result.method === "join") {
-
             const clientId = result.clientId;
             const gameId = result.gameId;
             const playerName = result.playerName
             const game = games[gameId];
+
             if (game.entry) {
                 const color = { "0": "#552619", "1": "#c83f5f", "2": "#144058", "3": "#B6E696", "4": "#355952" }[game.clients.length]
                 // console.log(game.clients.length + "game clients")
-
                 game.clients.push({
                     "clientId": clientId,
                     "playerName": playerName,
                     "color": color,
                     "progress": 0,
                     "score": 0
-
                 })
-
 
                 game.clients.forEach(c => {
                     const payload = {
@@ -115,6 +108,7 @@ wsServer.on("request", request => {
                         "admin": (c.clientId === admin) ? true : false,
                         "quote": quote
                     }
+                    //bulk response
                     clients[c.clientId].connection.send(JSON.stringify(payload))
                 })
             }
@@ -129,28 +123,27 @@ wsServer.on("request", request => {
             }
         }
 
+        //client start message when every one is ready to play and now game will start on all screens at the same time
         if (result.method === "start") {
             const clientId = result.clientId
             const gameId = result.gameId
             const game = games[gameId]
+
             if (clientId === admin) {
                 game.entry = false
-
                 game.clients.forEach(c => {
                     const payload = {
                         "method": "start",
                         "game": game,
-                        // "quote": quote
                     }
+                    // bulk response to all clients to start the game
                     clients[c.clientId].connection.send(JSON.stringify(payload))
                 })
-
-
             }
         }
 
+        // client progress bar message where each client recieve progress status of all other clients
         if (result.method === "progress") {
-            // console.log("progress recieved" + result.progress)
             const clientId = result.clientId
             const gameId = result.gameId
             const game = games[gameId]
@@ -158,37 +151,39 @@ wsServer.on("request", request => {
 
             game.clients.forEach(c => {
                 if (c.clientId === clientId) {
+                    //updating progress status of each client
                     c.progress = progress
-
                 }
-
             })
+
             const payload = {
                 "method": "progress",
                 "game": game
             }
             game.clients.forEach(c => {
+                //bulk response to all clients with latest progress status of everyone
                 clients[c.clientId].connection.send(JSON.stringify(payload))
-
             })
-
         }
 
+        // client progress complete message that it has finished typing
         if (result.method === "progress completed") {
             const clientId = result.clientId
             const gameId = result.gameId
             const game = games[gameId]
-            const accuracy = result.accuracy
-            const duration = result.duration
-            // console.log("completed" + duration)
+            const accuracy = result.accuracy //client accuracy record
+            const duration = result.duration //client duration to type completely
+
+            //constants to calculate score
             const w1 = 0.5
             const w2 = 0.5
+            //score calculation 
             const score = (w1 * accuracy) + (w2 * (1 / duration) * 1000)
-            // console.log(accuracy,duration)
+            
             game.clients.forEach(c => {
                 if (c.clientId === clientId) {
+                    // current results of those who have completed 
                     c.score = score
-                    // console.log("score server" + c.score)
                 }
             })
 
@@ -198,16 +193,13 @@ wsServer.on("request", request => {
             }
 
             game.clients.forEach(c => {
+                //bulk response of updated result stored in 'game' object
                 clients[c.clientId].connection.send(JSON.stringify(payload))
             })
-            // console.log("result sent" + game.clients + payload + )
-
         }
-
-
     });
 
-
+    // unique game Id
     const clientId = guid();
     clients[clientId] = {
         "connection": connection
@@ -221,7 +213,7 @@ wsServer.on("request", request => {
     connection.send(JSON.stringify(payload))
 })
 
-
+//functions for guid
 function S4() {
     return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring()
 }
