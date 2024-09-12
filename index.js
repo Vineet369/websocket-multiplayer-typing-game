@@ -18,7 +18,7 @@ const websocketServer = require("websocket").server
 const httpServer = http.createServer();
 httpServer.listen(PORT,'0.0.0.0', () => console.log("listening on 3000"))
 
-//constants and variables-------------------
+//constants and variables------------------------------------------
 const clients = {};
 const games = {};
 let admin = null;
@@ -28,7 +28,7 @@ const wsServer = new websocketServer({
     "httpServer": httpServer,
 })
 
-// Display text api and fetch functionality------------------------
+// Display text api and fetch functionality-------------------------
 const quoteUrl = 'https://dummyjson.com/quotes/random';
 
 function randomQuotes() {
@@ -62,6 +62,7 @@ wsServer.on("request", request => {
                             "clientId": clientId,
                             "playerName": adminName,
                             "color": "#E59462",
+                            "admin": true,
                             "progress": 0,
                             "score": 0
                         }
@@ -87,16 +88,18 @@ wsServer.on("request", request => {
         if (result.method === "join") {
             const clientId = result.clientId;
             const gameId = result.gameId;
-            const playerName = result.playerName
+            const playerName = result.playerName;
             const game = games[gameId];
+            const playAgain = result.playAgain? true : false; 
 
-            if (game.entry) {
+            if (game.entry && !playAgain) {
                 const color = { "0": "#552619", "1": "#c83f5f", "2": "#144058", "3": "#B6E696", "4": "#355952" }[game.clients.length]
                 // console.log(game.clients.length + "game clients")
                 game.clients.push({
                     "clientId": clientId,
                     "playerName": playerName,
                     "color": color,
+                    "admin": false,
                     "progress": 0,
                     "score": 0
                 })
@@ -111,8 +114,31 @@ wsServer.on("request", request => {
                     //bulk response
                     clients[c.clientId].connection.send(JSON.stringify(payload))
                 })
-            }
-            else {
+            } else if(playAgain) {
+                async function generateQuote() {
+                    quote = await randomQuotes()
+            
+                    game.clients.forEach(c => {
+                        // c.admin = result.adminStatus; 
+                        c.progress = 0;
+                        c.score = 0;
+                    })
+                    game.entry = true;
+                    game.displayText = quote;
+
+                    game.clients.forEach(c => {
+                        const payload = {
+                            "method": "join",
+                            "game": game,
+                            "admin": c.admin,
+                            "quote": quote
+                        }
+                        //bulk response
+                        clients[c.clientId].connection.send(JSON.stringify(payload))
+                    })
+                }
+                generateQuote()
+            } else {
                 const payload = {
                     "method": "invalid entry",
                     "game": game,
