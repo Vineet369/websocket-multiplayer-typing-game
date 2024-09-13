@@ -174,11 +174,10 @@ wsServer.on("request", request => {
             const gameId = result.gameId
             const game = games[gameId]
             const progress = result.progress
-
             game.clients.forEach(c => {
                 if (c.clientId === clientId) {
                     //updating progress status of each client
-                    c.progress = progress
+                    c.progress = progress 
                 }
             })
 
