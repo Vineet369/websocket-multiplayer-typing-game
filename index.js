@@ -51,6 +51,7 @@ wsServer.on("request", request => {
         if (result.method === "create") {
             async function generateQuote() {
                 quote = await randomQuotes()
+                console.log(quote)
                 const clientId = result.clientId;
                 admin = clientId;
                 const adminName = result.adminName;
