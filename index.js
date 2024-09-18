@@ -29,12 +29,13 @@ const wsServer = new websocketServer({
 })
 
 // Display text api and fetch functionality-------------------------
-const quoteUrl = 'https://dummyjson.com/quotes/random';
+// const quoteUrl = 'https://dummyjson.com/quotes/random';
+const quoteUrl = 'https://zenquotes.io/api/random';
 
 function randomQuotes() {
     return fetch(quoteUrl)
         .then(res => res.json())
-        .then(data => data.quote)
+        .then(data => data.q)
 
 }
 
@@ -93,12 +94,12 @@ wsServer.on("request", request => {
             const playAgain = result.playAgain? true : false; 
 
             if (game.entry && !playAgain) {
-                const color = { "0": "#552619", "1": "#c83f5f", "2": "#144058", "3": "#B6E696", "4": "#355952" }[game.clients.length]
+                const color = { "0": "#552619", "1": "#c83f5f", "2": "#144058", "3": "#B6E696", "4": "#355952","5": "#552720", "6": "#c83f3f", "7": "#1440114", "8": "#B6E626", "9": "#355911" }[game.clients.length]
                 // console.log(game.clients.length + "game clients")
                 game.clients.push({
                     "clientId": clientId,
                     "playerName": playerName,
-                    "color": color,
+                    "color": color? color : "#552720",
                     "admin": false,
                     "progress": 0,
                     "score": 0
