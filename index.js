@@ -29,13 +29,13 @@ const wsServer = new websocketServer({
 })
 
 // Display text api and fetch functionality-------------------------
-// const quoteUrl = 'https://dummyjson.com/quotes/random';
-const quoteUrl = 'https://zenquotes.io/api/random';
+const quoteUrl = 'https://dummyjson.com/quotes/random';
+// const quoteUrl = 'https://zenquotes.io/api/random';
 
 function randomQuotes() {
     return fetch(quoteUrl)
         .then(res => res.json())
-        .then(data => data.q)
+        .then(data => data.quote)
 
 }
 
